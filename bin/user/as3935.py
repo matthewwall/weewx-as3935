@@ -80,7 +80,7 @@ from datetime import datetime
 from weewx.wxengine import StdService
 from weeutil.weeutil import to_bool
 
-VERSION = "X"
+VERSION = "0.6"
 
 if weewx.__version__ < "3.2":
     raise weewx.UnsupportedFeature("weewx 3 is required, found %s" %
