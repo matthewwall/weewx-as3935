@@ -1,0 +1,19 @@
+0.6 28sep2016
+* show settings in log when service starts up
+
+0.5 25sep2016
+* added binding option for loop vs archive
+* update comments and configuration instructions
+
+0.4 31jul2015
+* ensure proper units conversion
+* make defaults explicit in weewx.conf
+
+0.3 24jul2015
+* shut down GPIO when the service shuts down
+
+0.2 18jun2015
+* fixed silly bugs
+
+0.1 16jun2015
+* initial public release

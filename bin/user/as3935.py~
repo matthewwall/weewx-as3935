@@ -1,0 +1,102 @@
+# $Id$
+# Copyright 2015 Matthew Wall
+
+"""
+A service for weewx that reads the AS3935 lightning sensor range.  This service
+will add two fields to each archive record:
+
+  lightning_strikes - number of lightning strikes in the pass archive interval
+  avg_distance - average distance of the lightning strikes
+
+To track these and use them in reports and plots, extend the schema as
+described in the weewx customization guide.
+
+Configuration:
+
+Rev. 1 Raspberry Pis should leave bus set at 0, while rev. 2 Pis should
+set bus equal to 1. The address should be changed to match the address of
+the sensor.  Common implementations are in README.md.
+
+[AS3935]
+    address = 3
+    bus = 1
+    noise_floor = 0
+    calibration = 6
+    indoors = True
+    pin = 17
+
+[Engine]
+    [[Services]]
+        data_services = ..., user.as3935.AS3935
+
+Credit:
+
+Based on Phil Fenstermacher's RaspberryPi-AS3935 library and demo.py script.
+  https://github.com/pcfens/RaspberryPi-AS3935
+"""
+
+from RPi_AS3935 import RPi_AS3935
+import RPi.GPIO as GPIO
+import time
+import syslog
+import weewx
+from datetime import datetime
+from weewx.wxengine import StdService
+from weeutil.weeutil import to_bool
+
+class AS3935(StdService):
+    def __init__(self, engine, config_dict):
+        super(AS3935, self).__init__(engine, config_dict)
+        svc_dict = config_dict.get('AS3935', {})
+        addr = int(svc_dict.get('address', 0x03))
+        bus = int(svc_dict.get('bus', 1))
+        indoors = to_bool(svc_dict.get('indoors', True))
+        noise_floor = int(svc_dict.get('noise_floor', 0))
+        calib = int(svc_dict.get('calibration', 0x6))
+        pin = int(svc_dict.get('pin', 17))
+
+        self.data = []
+
+        GPIO.setmode(GPIO.BCM)
+        GPIO.setup(pin, GPIO.IN)
+
+        self.sensor = RPi_AS3935(address=addr, bus=bus)
+        self.sensor.set_indoors(indoors)
+        self.sensor.set_noise_floor(noise_floor)
+        self.sensor.calibrate(tun_cap=calib)
+
+        GPIO.add_event_detect(pin, GPIO.RISING, callback=self.handle_interrupt)
+        self.bind(weewx.NEW_ARCHIVE_RECORD, self.read_data)
+   
+    def read_data(self, event):
+        avg = None
+        count = len(self.data)
+        if count:
+            avg = 0
+            for x in self.data:
+                avg += x[1]
+            avg /= count
+        self.data = []
+        event.record['lightning_strikes'] = count
+        event.record['avg_distance'] = avg
+
+    def handle_interrupt(self, channel):
+        try:   
+            time.sleep(0.003)
+            reason = self.sensor.get_interrupt()
+            if reason == 0x01:
+                syslog.syslog(syslog.LOG_INFO,
+                              "as3935: noise level too high - adjusting")  
+                self.sensor.raise_noise_floor()
+            elif reason == 0x04:
+                syslog.syslog(syslog.LOG_INFO,
+                              "as3935: detected disturber - masking")
+                sensor.set_mask_disturber(True)
+            elif reason == 0x08:
+                now = time.time()
+                value = sensor.get_distance()
+                self.data.append((now, value))
+                syslog.syslog(syslog.LOG_INFO,
+                              "as3935: strike at %s km" % value)
+        except Exception, e:
+            syslog.syslog(syslog.LOG_ERR, "as3935: callback failed: %s" % e)
