@@ -1,8 +1,8 @@
-# $Id: install.py 1559 2016-09-28 19:59:02Z mwall $
 # installer for as3935 lightning detection on raspberry pi
 # Copyright 2015 Matthew Wall
+# Distributed under the terms of the GNU Public License (GPLv3)
 
-from setup import ExtensionInstaller
+from weecfg.extension import ExtensionInstaller
 
 def loader():
     return AS3935Installer()

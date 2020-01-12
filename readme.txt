@@ -1,5 +1,6 @@
 as3835 - emit lightning measurements in archive data
 Copyright 2015 Matthew Wall
+Distributed under terms of the GPLv3
 
 Installation instructions:
 
