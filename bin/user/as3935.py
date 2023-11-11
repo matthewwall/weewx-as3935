@@ -150,7 +150,7 @@ class AS3935(StdService):
                                     (dbcol, memcol))
 
         # configure the sensor
-        self.sensor = RPi_AS3935(address=addr, bus=bus)
+        self.sensor = RPi_AS3935.RPi_AS3935(address=addr, bus=bus)
         self.sensor.set_indoors(indoors)
         self.sensor.set_noise_floor(noise_floor)
         self.sensor.calibrate(tun_cap=calib)
@@ -230,5 +230,5 @@ class AS3935(StdService):
                 loginf("strike at %s km" % distance)
                 self.data.append((strike_ts, distance))
                 self.save_data(strike_ts, distance)
-        except Exception, e:
+        except Exception as e:
             logerr("callback failed: %s" % e)
