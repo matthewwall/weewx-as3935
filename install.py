@@ -15,7 +15,7 @@ class AS3935Installer(ExtensionInstaller):
             description='Capture lightning data from AS3935 hardware',
             author="Matthew Wall",
             author_email="mwall@users.sourceforge.net",
-            process_services='user.as3935.AS3935',
+            data_services='user.as3935.AS3935',
             config={
                 'AS3935': {
                     'address': '3',
