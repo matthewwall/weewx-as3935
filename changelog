@@ -1,3 +1,12 @@
+0.7 18nov2023
+* make logging work with weewx V3 or V4
+* make this code work with python2 or python3
+* use 'lightning_strike_count' and 'lightning_distance' instead of
+  'lightning_strikes' and 'avg_distance'.  this means immediate compatiblity
+  with the wview_extended schema.
+* use data_services instead of the older process_services
+* thanks to user roe-dl for these changes!
+
 0.6 28sep2016
 * show settings in log when service starts up
 

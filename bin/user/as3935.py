@@ -1,5 +1,5 @@
 # $Id: as3935.py 1560 2016-09-28 20:01:07Z mwall $
-# Copyright 2015 Matthew Wall
+# Copyright 2015-2023 Matthew Wall
 
 """
 A service for weewx that reads the AS3935 lightning sensor range.  This service
@@ -80,7 +80,7 @@ from datetime import datetime
 from weewx.wxengine import StdService
 from weeutil.weeutil import to_bool
 
-VERSION = "0.6"
+VERSION = "0.7"
 
 if weewx.__version__ < "3.2":
     raise weewx.UnsupportedFeature("weewx 3 is required, found %s" %
