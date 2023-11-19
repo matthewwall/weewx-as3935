@@ -119,7 +119,7 @@ except ImportError:
     import syslog
 
     def logmsg(level, msg):
-        syslog.syslog(level, 'user.E3DC: %s' % msg)
+        syslog.syslog(level, 'user.as3925: %s' % msg)
 
     def logdbg(msg):
         logmsg(syslog.LOG_DEBUG, msg)
