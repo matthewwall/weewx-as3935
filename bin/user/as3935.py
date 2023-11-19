@@ -5,8 +5,8 @@
 A service for weewx that reads the AS3935 lightning sensor range.  This service
 will add two fields to each archive record:
 
-  lightning_strikes - number of lightning strikes in the past interval
-  avg_distance - average distance of the lightning strikes
+  lightning_strike_count - number of lightning strikes in the past interval
+  lightning_distance - average distance of the lightning strikes
 
 To track these and use them in reports and plots, extend the weewx database
 schema as described in the weewx customization guide.
@@ -87,7 +87,7 @@ if weewx.__version__ < "3.2":
                                    weewx.__version__)
 
 # uncomment this if you want to sum counts instead of getting counts per period
-#weewx.accum.extract_dict['lightning_strikes'] = weewx.accum.Accum.sum_extract
+#weewx.accum.extract_dict['lightning_strike_count'] = weewx.accum.Accum.sum_extract
 
 schema = [('dateTime', 'INTEGER NOT NULL PRIMARY KEY'),
           ('usUnits', 'INTEGER NOT NULL'),
@@ -99,17 +99,36 @@ def get_default_binding_dict():
             'table_name': 'archive',
             'schema': 'user.as3935.schema'}
 
-def logmsg(level, msg):
-    syslog.syslog(level, 'as3935: %s' % msg)
+try:
+    # Test for new-style weewx logging by trying to import weeutil.logger
+    import weeutil.logger
+    import logging
+    log = logging.getLogger("user.as3935")
 
-def logdbg(msg):
-    logmsg(syslog.LOG_DEBUG, msg)
+    def logdbg(msg):
+        log.debug(msg)
 
-def loginf(msg):
-    logmsg(syslog.LOG_INFO, msg)
+    def loginf(msg):
+        log.info(msg)
 
-def logerr(msg):
-    logmsg(syslog.LOG_ERR, msg)
+    def logerr(msg):
+        log.error(msg)
+
+except ImportError:
+    # Old-style weewx logging
+    import syslog
+
+    def logmsg(level, msg):
+        syslog.syslog(level, 'user.E3DC: %s' % msg)
+
+    def logdbg(msg):
+        logmsg(syslog.LOG_DEBUG, msg)
+
+    def loginf(msg):
+        logmsg(syslog.LOG_INFO, msg)
+
+    def logerr(msg):
+        logmsg(syslog.LOG_ERR, msg)
 
 class AS3935(StdService):
     def __init__(self, engine, config_dict):
@@ -150,7 +169,7 @@ class AS3935(StdService):
                                     (dbcol, memcol))
 
         # configure the sensor
-        self.sensor = RPi_AS3935(address=addr, bus=bus)
+        self.sensor = RPi_AS3935.RPi_AS3935(address=addr, bus=bus)
         self.sensor.set_indoors(indoors)
         self.sensor.set_noise_floor(noise_floor)
         self.sensor.calibrate(tun_cap=calib)
@@ -197,8 +216,8 @@ class AS3935(StdService):
         if 'usUnits' in pkt and pkt['usUnits'] == weewx.US:
             avg = weewx.units.convert((avg, 'km', 'group_distance'), 'mile')[0]
         # save the count and average
-        pkt['avg_distance'] = avg
-        pkt['lightning_strikes'] = count
+        pkt['lightning_distance'] = avg
+        pkt['lightning_strike_count'] = count
         # clear the count and average
         self.data = []
 
@@ -219,7 +238,7 @@ class AS3935(StdService):
             time.sleep(0.003)
             reason = self.sensor.get_interrupt()
             if reason == 0x01:
-                loginf("noise level too high - adjusting")  
+                loginf("noise level too high - adjusting (old value %s)" % self.sensor.get_noise_floor())
                 self.sensor.raise_noise_floor()
             elif reason == 0x04:
                 loginf("detected disturber - masking")
@@ -230,5 +249,5 @@ class AS3935(StdService):
                 loginf("strike at %s km" % distance)
                 self.data.append((strike_ts, distance))
                 self.save_data(strike_ts, distance)
-        except Exception, e:
+        except Exception as e:
             logerr("callback failed: %s" % e)
